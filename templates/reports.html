@@ -1,0 +1,1 @@
+{% extends "base.html" %}{% block content %}<section class="card"><h2>Relatórios</h2>{% for r in by_status %}<div class="mini-list">{{ r.status }} — {{ r.total }}</div>{% else %}<p>Sem dados.</p>{% endfor %}</section>{% endblock %}

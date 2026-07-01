@@ -1,0 +1,1 @@
+{% extends "base.html" %}{% block content %}<section class="card"><h2>Requisições</h2>{% for r in rows %}<div class="request"><h3><a href="{{ url_for('request_detail', req_id=r.id) }}">{{ r.number }} — {{ r.patient }}</a></h3><p>{{ r.clinic_name }} | {{ r.status }}</p><p>{{ r.exams_json|json_list }}</p></div>{% else %}<p>Nenhuma requisição.</p>{% endfor %}</section>{% endblock %}

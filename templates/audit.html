@@ -1,0 +1,1 @@
+{% extends "base.html" %}{% block content %}<section class="card"><h2>Auditoria</h2>{% for r in rows %}<div class="mini-list">{{ r.created_at|datebr }} — {{ r.user_name }} — {{ r.action }}</div>{% endfor %}</section>{% endblock %}
