@@ -30,3 +30,10 @@ PASSOS NO RENDER
 4. Se existir PYTHON_VERSION, defina:
    3.12.4
 5. Manual Deploy > Clear build cache & deploy
+
+LIS V1:
+- Lançamento de resultados por requisição.
+- Campos: exame, parâmetro, resultado, unidade, referência, flag, método e observações.
+- Geração de laudo PDF automático.
+- Status muda para Resultado liberado após gerar PDF.
+- PDF fica disponível dentro da requisição.

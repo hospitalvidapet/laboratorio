@@ -3,11 +3,18 @@ import os,json
 from pathlib import Path
 from datetime import datetime,timedelta
 from functools import wraps
-from flask import Flask,render_template,request,redirect,url_for,session,flash
+from flask import Flask,render_template,request,redirect,url_for,session,flash,send_from_directory
 from werkzeug.security import generate_password_hash,check_password_hash
 from sqlalchemy import create_engine,text
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import cm
+from reportlab.lib import colors
 
 APP_NAME="LABORATÓRIO VIDAPET"
+BASE_DIR=Path(__file__).resolve().parent
+UPLOAD_DIR=BASE_DIR/"uploads"
+UPLOAD_DIR.mkdir(exist_ok=True)
 BASE=Path(__file__).resolve().parent
 DBURL=os.environ.get("DATABASE_URL")
 if DBURL:
@@ -37,9 +44,17 @@ def init_db():
         "CREATE TABLE IF NOT EXISTS exams (id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,material TEXT,deadline_hours INTEGER DEFAULT 24,group_id INTEGER,active INTEGER DEFAULT 1,display_order INTEGER DEFAULT 999)",
         "CREATE TABLE IF NOT EXISTS exam_profiles (id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,exams_json TEXT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS sample_types (id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE NOT NULL,active INTEGER DEFAULT 1,display_order INTEGER DEFAULT 999)",
-        "CREATE TABLE IF NOT EXISTS requests (id INTEGER PRIMARY KEY AUTOINCREMENT,number TEXT UNIQUE NOT NULL,clinic_name TEXT NOT NULL,veterinarian TEXT NOT NULL,crmv TEXT,tutor TEXT NOT NULL,tutor_phone TEXT,patient TEXT NOT NULL,species TEXT,breed TEXT,sex TEXT,age TEXT,weight TEXT,samples_json TEXT NOT NULL,collection_datetime TEXT,priority TEXT NOT NULL,exams_json TEXT NOT NULL,history_clinical TEXT,suspicion TEXT,medications TEXT,observations TEXT,status TEXT NOT NULL,due_at TEXT,created_by INTEGER,created_at TEXT NOT NULL,lab_internal_obs TEXT)",
+        "CREATE TABLE IF NOT EXISTS requests (id INTEGER PRIMARY KEY AUTOINCREMENT,number TEXT UNIQUE NOT NULL,clinic_name TEXT NOT NULL,veterinarian TEXT NOT NULL,crmv TEXT,tutor TEXT NOT NULL,tutor_phone TEXT,patient TEXT NOT NULL,species TEXT,breed TEXT,sex TEXT,age TEXT,weight TEXT,samples_json TEXT NOT NULL,collection_datetime TEXT,priority TEXT NOT NULL,exams_json TEXT NOT NULL,selected_profiles_json TEXT,history_clinical TEXT,suspicion TEXT,medications TEXT,observations TEXT,status TEXT NOT NULL,due_at TEXT,created_by INTEGER,created_at TEXT NOT NULL,lab_internal_obs TEXT)",
+        "CREATE TABLE IF NOT EXISTS lab_results (id INTEGER PRIMARY KEY AUTOINCREMENT,request_id INTEGER NOT NULL,exam_name TEXT NOT NULL,parameter TEXT NOT NULL,result_value TEXT,unit TEXT,reference_value TEXT,flag TEXT,method TEXT,observations TEXT,created_at TEXT NOT NULL)",
+        "CREATE TABLE IF NOT EXISTS lab_reports (id INTEGER PRIMARY KEY AUTOINCREMENT,request_id INTEGER NOT NULL,filename TEXT NOT NULL,created_at TEXT NOT NULL)",
         "CREATE TABLE IF NOT EXISTS audit (id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER,user_name TEXT,action TEXT NOT NULL,created_at TEXT NOT NULL)"
         ]: db.execute(text(compat(sql)))
+        
+        # Migração segura: não apaga histórico; só adiciona a coluna para perfis selecionados.
+        try:
+            db.execute(text("ALTER TABLE requests ADD COLUMN selected_profiles_json TEXT"))
+        except Exception:
+            pass
         seeded=db.execute(text("SELECT value FROM app_settings WHERE key='seeded_defaults'")).scalar()
         if seeded=="1": return
         existing_users = db.execute(text("SELECT COUNT(*) FROM users")).scalar()
@@ -156,9 +171,9 @@ def new_request():
         if not clinic or not ex or not sm:
             flash("Preencha clínica, amostras e exames.","error"); return redirect(url_for("new_request"))
         num="LV-"+datetime.now().strftime("%Y%m%d-%H%M%S")
-        vals=dict(number=num,clinic_name=clinic,veterinarian=request.form.get("veterinarian"),crmv=request.form.get("crmv"),tutor=request.form.get("tutor"),tutor_phone=request.form.get("tutor_phone"),patient=request.form.get("patient"),species=request.form.get("species"),breed=request.form.get("breed"),sex=request.form.get("sex"),age=request.form.get("age"),weight=request.form.get("weight"),samples_json=json.dumps(sm,ensure_ascii=False),collection_datetime=request.form.get("collection_datetime"),priority=request.form.get("priority"),exams_json=json.dumps(ex,ensure_ascii=False),history_clinical=request.form.get("history_clinical"),suspicion=request.form.get("suspicion"),medications=request.form.get("medications"),observations=request.form.get("observations"),status="Requisição enviada",due_at=(datetime.now()+timedelta(hours=24)).isoformat(timespec="seconds"),created_by=cur_user()["id"],created_at=datetime.now().isoformat(timespec="seconds"))
+        vals=dict(number=num,clinic_name=clinic,veterinarian=request.form.get("veterinarian"),crmv=request.form.get("crmv"),tutor=request.form.get("tutor"),tutor_phone=request.form.get("tutor_phone"),patient=request.form.get("patient"),species=request.form.get("species"),breed=request.form.get("breed"),sex=request.form.get("sex"),age=request.form.get("age"),weight=request.form.get("weight"),samples_json=json.dumps(sm,ensure_ascii=False),collection_datetime=request.form.get("collection_datetime"),priority=request.form.get("priority"),exams_json=json.dumps(ex,ensure_ascii=False),selected_profiles_json=json.dumps(request.form.getlist("profiles"),ensure_ascii=False),history_clinical=request.form.get("history_clinical"),suspicion=request.form.get("suspicion"),medications=request.form.get("medications"),observations=request.form.get("observations"),status="Requisição enviada",due_at=(datetime.now()+timedelta(hours=24)).isoformat(timespec="seconds"),created_by=cur_user()["id"],created_at=datetime.now().isoformat(timespec="seconds"))
         with engine.begin() as db:
-            db.execute(text("""INSERT INTO requests (number,clinic_name,veterinarian,crmv,tutor,tutor_phone,patient,species,breed,sex,age,weight,samples_json,collection_datetime,priority,exams_json,history_clinical,suspicion,medications,observations,status,due_at,created_by,created_at) VALUES (:number,:clinic_name,:veterinarian,:crmv,:tutor,:tutor_phone,:patient,:species,:breed,:sex,:age,:weight,:samples_json,:collection_datetime,:priority,:exams_json,:history_clinical,:suspicion,:medications,:observations,:status,:due_at,:created_by,:created_at)"""),vals)
+            db.execute(text("""INSERT INTO requests (number,clinic_name,veterinarian,crmv,tutor,tutor_phone,patient,species,breed,sex,age,weight,samples_json,collection_datetime,priority,exams_json,selected_profiles_json,history_clinical,suspicion,medications,observations,status,due_at,created_by,created_at) VALUES (:number,:clinic_name,:veterinarian,:crmv,:tutor,:tutor_phone,:patient,:species,:breed,:sex,:age,:weight,:samples_json,:collection_datetime,:priority,:exams_json,:selected_profiles_json,:history_clinical,:suspicion,:medications,:observations,:status,:due_at,:created_by,:created_at)"""),vals)
         audit(f"Criou requisição {num}"); flash("Requisição enviada.","success"); return redirect(url_for("requests_list"))
     grouped=[{"group":g,"exams":[e for e in exams if e["group_id"]==g["id"]]} for g in groups]
     grouped=[b for b in grouped if b["exams"]]
@@ -166,8 +181,10 @@ def new_request():
 @app.route("/request/<int:req_id>")
 @login_required
 def request_detail(req_id):
-    with engine.begin() as db: r=one(db.execute(text("SELECT * FROM requests WHERE id=:id"),dict(id=req_id)))
-    return render_template("request_detail.html",row=r)
+    with engine.begin() as db:
+        r=one(db.execute(text("SELECT * FROM requests WHERE id=:id"),dict(id=req_id)))
+        reports=rows(db.execute(text("SELECT * FROM lab_reports WHERE request_id=:id ORDER BY id DESC"),dict(id=req_id)))
+    return render_template("request_detail.html",row=r,reports=reports)
 @app.route("/request/<int:req_id>/status",methods=["POST"])
 @login_required
 @role("laboratorio","admin")
@@ -241,6 +258,128 @@ def admin():
         flash("Usuário criado.","success"); return redirect(url_for("admin"))
     clinics,exams,groups,profiles,samples,users=refs(False)
     return render_template("admin.html",users=users)
+
+@app.route("/request/<int:req_id>/results", methods=["GET","POST"])
+@login_required
+@role("laboratorio","admin")
+def request_results(req_id):
+    with engine.begin() as db:
+        req = one(db.execute(text("SELECT * FROM requests WHERE id=:id"), dict(id=req_id)))
+        existing = rows(db.execute(text("SELECT * FROM lab_results WHERE request_id=:id ORDER BY id"), dict(id=req_id)))
+    if not req:
+        flash("Requisição não encontrada.","error")
+        return redirect(url_for("requests_list"))
+
+    if request.method == "POST":
+        action = request.form.get("action")
+        with engine.begin() as db:
+            if action == "add":
+                db.execute(text("""INSERT INTO lab_results 
+                    (request_id,exam_name,parameter,result_value,unit,reference_value,flag,method,observations,created_at)
+                    VALUES (:request_id,:exam_name,:parameter,:result_value,:unit,:reference_value,:flag,:method,:observations,:created_at)
+                """), dict(
+                    request_id=req_id,
+                    exam_name=request.form.get("exam_name"),
+                    parameter=request.form.get("parameter"),
+                    result_value=request.form.get("result_value"),
+                    unit=request.form.get("unit"),
+                    reference_value=request.form.get("reference_value"),
+                    flag=request.form.get("flag"),
+                    method=request.form.get("method"),
+                    observations=request.form.get("observations"),
+                    created_at=datetime.now().isoformat(timespec="seconds")
+                ))
+                flash("Resultado adicionado.","success")
+            elif action == "delete":
+                db.execute(text("DELETE FROM lab_results WHERE id=:id AND request_id=:request_id"), dict(id=request.form.get("result_id"), request_id=req_id))
+                flash("Resultado excluído.","success")
+        return redirect(url_for("request_results", req_id=req_id))
+
+    exams = []
+    try:
+        exams = json.loads(req.get("exams_json") or "[]")
+    except Exception:
+        exams = []
+    return render_template("results.html", row=req, results=existing, exams=exams)
+
+
+@app.route("/request/<int:req_id>/generate-report", methods=["POST"])
+@login_required
+@role("laboratorio","admin")
+def generate_report(req_id):
+    with engine.begin() as db:
+        req = one(db.execute(text("SELECT * FROM requests WHERE id=:id"), dict(id=req_id)))
+        results = rows(db.execute(text("SELECT * FROM lab_results WHERE request_id=:id ORDER BY exam_name,id"), dict(id=req_id)))
+    if not req:
+        flash("Requisição não encontrada.","error")
+        return redirect(url_for("requests_list"))
+    if not results:
+        flash("Adicione ao menos um resultado antes de gerar o laudo.","error")
+        return redirect(url_for("request_results", req_id=req_id))
+
+    filename = f"laudo_{req['number'].replace('/','_').replace(':','_')}.pdf"
+    filepath = UPLOAD_DIR / filename
+
+    c = canvas.Canvas(str(filepath), pagesize=A4)
+    width, height = A4
+    y = height - 2*cm
+
+    def line(txt, size=10, bold=False):
+        nonlocal y
+        if y < 2*cm:
+            c.showPage()
+            y = height - 2*cm
+        c.setFont("Helvetica-Bold" if bold else "Helvetica", size)
+        c.drawString(2*cm, y, str(txt)[:120])
+        y -= 0.55*cm
+
+    c.setFillColor(colors.HexColor("#075985"))
+    c.setFont("Helvetica-Bold", 18)
+    c.drawString(2*cm, y, "LABORATÓRIO VIDAPET")
+    y -= 0.9*cm
+    c.setFillColor(colors.black)
+
+    line(f"Laudo laboratorial - Requisição {req['number']}", 12, True)
+    line(f"Paciente: {req['patient']} | Espécie: {req.get('species') or '-'} | Raça: {req.get('breed') or '-'}")
+    line(f"Tutor: {req['tutor']} | Clínica: {req['clinic_name']}")
+    line(f"Veterinário requisitante: {req['veterinarian']} {req.get('crmv') or ''}")
+    line(f"Data de emissão: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+    y -= 0.3*cm
+
+    current_exam = None
+    for r in results:
+        if r["exam_name"] != current_exam:
+            current_exam = r["exam_name"]
+            y -= 0.2*cm
+            line(current_exam.upper(), 12, True)
+            line("Parâmetro | Resultado | Unidade | Referência | Flag", 9, True)
+        flag = r.get("flag") or ""
+        line(f"{r['parameter']} | {r.get('result_value') or '-'} | {r.get('unit') or '-'} | {r.get('reference_value') or '-'} | {flag}", 9)
+        if r.get("observations"):
+            line(f"Obs.: {r.get('observations')}", 8)
+
+    y -= 0.5*cm
+    line("Responsável técnico: ________________________________", 10, True)
+    line("Assinatura digital: em desenvolvimento", 9)
+
+    c.save()
+
+    with engine.begin() as db:
+        db.execute(text("INSERT INTO lab_reports (request_id,filename,created_at) VALUES (:request_id,:filename,:created_at)"),
+                   dict(request_id=req_id, filename=filename, created_at=datetime.now().isoformat(timespec="seconds")))
+        db.execute(text("UPDATE requests SET status='Resultado liberado' WHERE id=:id"), dict(id=req_id))
+
+    audit(f"Gerou laudo PDF da requisição {req['number']}")
+    flash("Laudo PDF gerado e resultado liberado.","success")
+    return redirect(url_for("request_detail", req_id=req_id))
+
+
+@app.route("/reports-file/<filename>")
+@login_required
+def report_file(filename):
+    return send_from_directory(str(UPLOAD_DIR), filename)
+
+
 @app.route("/reports")
 @login_required
 @role("laboratorio","admin")

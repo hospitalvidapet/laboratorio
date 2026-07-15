@@ -1,0 +1,19 @@
+CHECKLIST DE TESTES — VERSÃO 2.0
+
+[ ] Login do administrador
+[ ] Criação de usuário requisitante
+[ ] Criação de usuário laboratório
+[ ] Cadastro de grupo de exames
+[ ] Cadastro de exame
+[ ] Cadastro de perfil de exames
+[ ] Cadastro de tipo de amostra
+[ ] Nova requisição com exames individuais
+[ ] Nova requisição usando perfil
+[ ] Acompanhamento da requisição enviada
+[ ] Lançamento de resultado
+[ ] Geração de laudo PDF
+[ ] Download do PDF
+[ ] Mudança automática para Resultado liberado
+[ ] Consulta da requisição após reiniciar/deployar
+[ ] Perfis excluídos não voltam
+[ ] Requisições não somem após redeploy

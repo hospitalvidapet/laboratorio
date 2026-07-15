@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Resultados laboratoriais</h2>
+  <p><strong>Requisição:</strong> {{ row.number }} — <strong>Paciente:</strong> {{ row.patient }}</p>
+
+  <form class="panel" method="post">
+    <input type="hidden" name="action" value="add">
+    <h3>Adicionar resultado</h3>
+    <div class="grid three">
+      <div>
+        <label>Exame</label>
+        <select name="exam_name" required>
+          {% for e in exams %}<option value="{{ e }}">{{ e }}</option>{% endfor %}
+        </select>
+      </div>
+      <div><label>Parâmetro</label><input name="parameter" required placeholder="Ex.: ALT, Hematócrito, Glicose"></div>
+      <div><label>Resultado</label><input name="result_value" required></div>
+      <div><label>Unidade</label><input name="unit" placeholder="Ex.: U/L, mg/dL, %"></div>
+      <div><label>Referência</label><input name="reference_value" placeholder="Ex.: 10 - 100"></div>
+      <div>
+        <label>Flag</label>
+        <select name="flag">
+          <option value="">Normal / sem flag</option>
+          <option>Baixo</option>
+          <option>Alto</option>
+          <option>Crítico</option>
+          <option>Positivo</option>
+          <option>Negativo</option>
+        </select>
+      </div>
+      <div><label>Método</label><input name="method"></div>
+    </div>
+    <label>Observações</label>
+    <textarea name="observations"></textarea>
+    <button>Adicionar resultado</button>
+  </form>
+
+  <h3>Resultados lançados</h3>
+  <table>
+    <tr><th>Exame</th><th>Parâmetro</th><th>Resultado</th><th>Unidade</th><th>Referência</th><th>Flag</th><th>Ação</th></tr>
+    {% for r in results %}
+    <tr>
+      <td>{{ r.exam_name }}</td>
+      <td>{{ r.parameter }}</td>
+      <td>{{ r.result_value }}</td>
+      <td>{{ r.unit }}</td>
+      <td>{{ r.reference_value }}</td>
+      <td>{{ r.flag }}</td>
+      <td>
+        <form method="post">
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="result_id" value="{{ r.id }}">
+          <button class="danger small-btn">Excluir</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7">Nenhum resultado lançado.</td></tr>
+    {% endfor %}
+  </table>
+
+  <form method="post" action="{{ url_for('generate_report', req_id=row.id) }}">
+    <button>Gerar laudo em PDF e liberar resultado</button>
+  </form>
+</section>
+{% endblock %}

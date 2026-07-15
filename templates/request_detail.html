@@ -1,1 +1,17 @@
-{% extends "base.html" %}{% block content %}<section class="card"><h2>{{ row.number }} — {{ row.patient }}</h2><p><b>Status:</b> {{ row.status }}</p><p><b>Clínica:</b> {{ row.clinic_name }}</p><p><b>Exames:</b> {{ row.exams_json|json_list }}</p><p><b>Amostras:</b> {{ row.samples_json|json_list }}</p>{% if user.profile in ['laboratorio','admin'] %}<form method="post" action="{{ url_for('update_status', req_id=row.id) }}"><label>Status</label><select name="status">{% for s in STATUS_LIST %}<option {% if row.status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select><textarea name="lab_internal_obs">{{ row.lab_internal_obs or '' }}</textarea><button>Salvar status</button></form>{% endif %}</section>{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+<section class="card request-detail status-{{ row.status|replace(' ','-')|replace('ç','c')|replace('ã','a')|replace('á','a')|replace('é','e')|lower }}">
+  <h2>{{ row.number }} — {{ row.patient }}</h2>
+  <p><strong>Status:</strong> <span class="status-pill">{{ row.status }}</span></p>
+  <div class="grid two">
+    <div class="panel"><h3>Clínica/Requisitante</h3><p><strong>Clínica:</strong> {{ row.clinic_name }}</p><p><strong>Veterinário:</strong> {{ row.veterinarian }} {{ row.crmv or '' }}</p><p><strong>Data:</strong> {{ row.created_at|datebr }}</p><p><strong>Prioridade:</strong> {{ row.priority or '-' }}</p></div>
+    <div class="panel"><h3>Tutor</h3><p><strong>Nome:</strong> {{ row.tutor }}</p><p><strong>Telefone:</strong> {{ row.tutor_phone or '-' }}</p></div>
+  </div>
+  <div class="panel"><h3>Dados completos do paciente</h3><div class="grid three"><p><strong>Nome:</strong> {{ row.patient }}</p><p><strong>Espécie:</strong> {{ row.species or '-' }}</p><p><strong>Raça:</strong> {{ row.breed or '-' }}</p><p><strong>Sexo:</strong> {{ row.sex or '-' }}</p><p><strong>Idade:</strong> {{ row.age or '-' }}</p><p><strong>Peso:</strong> {{ row.weight or '-' }}</p></div></div>
+  <div class="panel"><h3>Exames solicitados</h3>{% if row.selected_profiles_json %}<p><strong>Perfil solicitado:</strong> {{ row.selected_profiles_json|json_list }}</p>{% endif %}<p><strong>Exames do perfil/exames individuais:</strong> {{ row.exams_json|json_list }}</p><p><strong>Amostras:</strong> {{ row.samples_json|json_list }}</p><p><strong>Coleta:</strong> {{ row.collection_datetime or '-' }}</p></div>
+  <div class="panel"><h3>Informações clínicas</h3><p><strong>Histórico clínico:</strong> {{ row.history_clinical or '-' }}</p><p><strong>Suspeita diagnóstica:</strong> {{ row.suspicion or '-' }}</p><p><strong>Medicações em uso:</strong> {{ row.medications or '-' }}</p><p><strong>Observações:</strong> {{ row.observations or '-' }}</p></div>
+  {% if user.profile in ['laboratorio','admin'] %}<div class="panel"><h3>LIS - Resultados e laudo</h3><a class="btn" href="{{ url_for('request_results', req_id=row.id) }}">Lançar resultados / gerar PDF</a></div>{% endif %}
+  <h3>Laudos gerados</h3>{% for rep in reports %}<div class="mini-list"><a href="{{ url_for('report_file', filename=rep.filename) }}">{{ rep.filename }}</a> — {{ rep.created_at|datebr }}</div>{% else %}<p>Nenhum laudo PDF gerado.</p>{% endfor %}
+  {% if user.profile in ['laboratorio','admin'] %}<form method="post" action="{{ url_for('update_status', req_id=row.id) }}"><label>Status</label><select name="status">{% for s in STATUS_LIST %}<option {% if row.status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select><label>Observação interna do laboratório</label><textarea name="lab_internal_obs">{{ row.lab_internal_obs or '' }}</textarea><button>Salvar status</button></form>{% endif %}
+</section>
+{% endblock %}
