@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Iterable
 
-from sqlalchemy import inspect, text
+from sqlalchemy import Boolean, Integer, inspect, text
 from app import db
 
 
@@ -61,6 +61,48 @@ def _backfill(table_name: str, column_name: str, value, where_sql: str | None = 
         )
 
 
+
+def _normalize_boolean_column(table_name: str, column_name: str, changes: list[str]) -> None:
+    """Convert legacy PostgreSQL integer flags (0/1) to native BOOLEAN.
+
+    Older releases stored fields such as users.active as INTEGER. PostgreSQL
+    does not accept a Python boolean in an INTEGER column, so the conversion
+    must happen before boolean backfills and before the ORM starts writing.
+    SQLite keeps its native flexible representation and needs no ALTER TYPE.
+    """
+    if table_name not in _table_names() or column_name not in _columns(table_name):
+        return
+
+    inspector = inspect(db.engine)
+    column = next(
+        (item for item in inspector.get_columns(table_name) if item["name"] == column_name),
+        None,
+    )
+    if not column:
+        return
+
+    column_type = column.get("type")
+    is_legacy_integer = isinstance(column_type, Integer) and not isinstance(column_type, Boolean)
+    if db.engine.dialect.name != "postgresql" or not is_legacy_integer:
+        return
+
+    table = _quote(table_name)
+    field = _quote(column_name)
+    statement = f"""
+        ALTER TABLE {table}
+        ALTER COLUMN {field} TYPE BOOLEAN
+        USING (
+            CASE
+                WHEN {field} IS NULL THEN NULL
+                WHEN {field} = 0 THEN FALSE
+                ELSE TRUE
+            END
+        )
+    """
+    with db.engine.begin() as connection:
+        connection.execute(text(statement))
+    changes.append(f"{table_name}.{column_name}: INTEGER→BOOLEAN")
+
 def _add_many(specs: Iterable[tuple[str, str, str]], changes: list[str]) -> None:
     for table_name, column_name, sql_type in specs:
         if _add_column(table_name, column_name, sql_type):
@@ -100,6 +142,18 @@ def upgrade_database() -> list[str]:
         ],
         changes,
     )
+
+    # Normalize legacy 0/1 integer flags before sending Boolean parameters to
+    # PostgreSQL. This must run before the backfills below.
+    for table_name, column_name in [
+        ("users", "active"),
+        ("clinics", "active"),
+        ("species", "active"),
+        ("exams", "active"),
+        ("exam_profiles", "active"),
+        ("sample_types", "active"),
+    ]:
+        _normalize_boolean_column(table_name, column_name, changes)
 
     # Safe defaults for records created before these fields existed.
     _backfill("users", "role", "requisitante")
