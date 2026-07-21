@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Painel</h2>
+
+  <div class="stats">
+    <a class="stat-card {% if selected=='' %}active{% endif %}" href="{{ url_for('main.dashboard') }}">
+      <strong>{{ total }}</strong><span>Total</span>
+    </a>
+    <a class="stat-card pending {% if selected=='pending' %}active{% endif %}" href="{{ url_for('main.dashboard',status='pending') }}">
+      <strong>{{ pending }}</strong><span>Pendentes</span>
+    </a>
+    <a class="stat-card analysis {% if selected=='analysis' %}active{% endif %}" href="{{ url_for('main.dashboard',status='analysis') }}">
+      <strong>{{ analysis }}</strong><span>Em análise</span>
+    </a>
+    <a class="stat-card released {% if selected=='released' %}active{% endif %}" href="{{ url_for('main.dashboard',status='released') }}">
+      <strong>{{ released }}</strong><span>Liberados</span>
+    </a>
+  </div>
+
+  <h3>{{ page_title }}</h3>
+  {% for r in latest %}
+    <a class="request-card status-{{r.status|lower|replace(' ','-')}} priority-{{r.priority|lower}}" href="{{url_for('lis.request_detail',request_id=r.id)}}">
+      <div>
+        <strong>Requisição nº {{r.number}} — {{r.patient.name}}</strong>
+        <small>{{r.clinic.name}} · {{r.patient.tutor_name}} · {{r.created_at|datetime_br}}</small>
+      </div>
+      <div class="request-tags">
+        <span class="priority-badge priority-{{r.priority|lower}}">{{r.priority}}</span>
+        <span class="status-badge">{{r.status}}</span>
+      </div>
+    </a>
+  {% else %}
+    <p>Nenhuma requisição nesta situação.</p>
+  {% endfor %}
+</section>
+{% endblock %}

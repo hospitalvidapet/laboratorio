@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Sincronização do catálogo online</h2>
+  <p>Importa e atualiza espécies, grupos, exames, perfis e tipos de amostra do banco online. Registros locais não são apagados.</p>
+  {% if configured %}
+    <p><strong>Status:</strong> ONLINE_DATABASE_URL configurada.</p>
+    <form method="post" action="{{ url_for('admin.sync_catalog_test') }}" style="display:inline-block"><button class="btn" type="submit">Testar conexão</button></form>
+    <form method="post" action="{{ url_for('admin.sync_catalog_run') }}" style="display:inline-block" onsubmit="return confirm('Iniciar a sincronização agora?')"><button class="btn" type="submit">Sincronizar agora</button></form>
+  {% else %}
+    <p><strong>Status:</strong> não configurado. Adicione ONLINE_DATABASE_URL nas variáveis de ambiente.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h3>Execuções recentes</h3>
+  <div style="overflow-x:auto">
+  <table>
+    <thead><tr><th>Início</th><th>Origem</th><th>Status</th><th>Resumo</th><th>Erro</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ row.started_at|datetime_br }}</td>
+        <td>{{ row.trigger }}</td>
+        <td>{{ row.status }}</td>
+        <td>
+          {% if row.details %}
+            Criados: {{ row.details.values()|select('number')|list|sum if false else
+            (row.details.get('species_created',0)+row.details.get('groups_created',0)+row.details.get('exams_created',0)+row.details.get('profiles_created',0)+row.details.get('samples_created',0)) }};
+            Atualizados: {{ row.details.get('species_updated',0)+row.details.get('groups_updated',0)+row.details.get('exams_updated',0)+row.details.get('profiles_updated',0)+row.details.get('samples_updated',0) }}
+          {% else %}-{% endif %}
+        </td>
+        <td>{{ row.error_message or '-' }}</td>
+      </tr>
+      {% else %}<tr><td colspan="5">Nenhuma sincronização realizada.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

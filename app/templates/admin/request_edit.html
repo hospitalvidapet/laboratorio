@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Editar requisição nº {{row.number}}</h2>
+  <form method="post">
+    <div class="grid three">
+      <div><label>Paciente</label><input name="patient_name" value="{{row.patient.name}}" required></div>
+      <div><label>Tutor</label><input name="tutor_name" value="{{row.patient.tutor_name}}" required></div>
+      <div><label>Telefone</label><input name="tutor_phone" value="{{row.patient.tutor_phone or ''}}"></div>
+      <div><label>Espécie</label><input name="species" value="{{row.patient.species or ''}}"></div>
+      <div><label>Raça</label><input name="breed" value="{{row.patient.breed or ''}}"></div>
+      <div><label>Sexo</label><input name="sex" value="{{row.patient.sex or ''}}"></div>
+      <div><label>Idade</label><input name="age" value="{{row.patient.age or ''}}"></div>
+      <div><label>Peso</label><input name="weight" value="{{row.patient.weight or ''}}"></div>
+      <div><label>Veterinário</label><input name="veterinarian" value="{{row.veterinarian}}" required></div>
+      <div><label>CRMV</label><input name="crmv" value="{{row.crmv or ''}}"></div>
+      <div><label>Prioridade</label><select name="priority"><option {% if row.priority=='Rotina' %}selected{% endif %}>Rotina</option><option {% if row.priority=='Urgente' %}selected{% endif %}>Urgente</option><option {% if row.priority=='Emergência' %}selected{% endif %}>Emergência</option></select></div>
+      <div><label>Status</label><select name="status"><option {% if row.status=='Requisição enviada' %}selected{% endif %}>Requisição enviada</option><option {% if row.status=='Aguardando amostra' %}selected{% endif %}>Aguardando amostra</option><option {% if row.status=='Amostra recebida' %}selected{% endif %}>Amostra recebida</option><option {% if row.status=='Em análise' %}selected{% endif %}>Em análise</option><option {% if row.status=='Resultado liberado' %}selected{% endif %}>Resultado liberado</option><option {% if row.status=='Exame cancelado' %}selected{% endif %}>Exame cancelado</option></select></div>
+    </div>
+    <label>Histórico</label><textarea name="clinical_history">{{row.clinical_history or ''}}</textarea>
+    <label>Suspeita</label><textarea name="diagnostic_suspicion">{{row.diagnostic_suspicion or ''}}</textarea>
+    <label>Medicações</label><textarea name="medications">{{row.medications or ''}}</textarea>
+    <label>Observações</label><textarea name="observations">{{row.observations or ''}}</textarea>
+    <label>Observação interna</label><textarea name="internal_notes">{{row.internal_notes or ''}}</textarea>
+    <button>Salvar alterações</button>
+  </form>
+</section>
+{% endblock %}

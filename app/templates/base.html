@@ -1,0 +1,11 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Laboratório VidaPet</title><link rel="stylesheet" href="{{ url_for('static',filename='css/app.css') }}"></head>
+<body><header><div><h1>LABORATÓRIO VIDAPET</h1><p>LIS Veterinário — Versão 3.1</p></div>
+{% if current_user.is_authenticated %}<div>{{ current_user.name }} · {{ current_user.role }} · <a href="{{ url_for('auth.logout') }}">Sair</a></div>{% endif %}</header>
+{% if current_user.is_authenticated %}<nav>
+<a href="{{ url_for('main.dashboard') }}">Painel</a>
+<a href="{{ url_for('lis.new_request') }}">Nova requisição</a>
+<a href="{{ url_for('lis.requests_list') }}">Requisições</a>
+{% if current_user.role=='admin' %}<a href="{{ url_for('admin.index') }}">Administração</a>{% endif %}
+</nav>{% endif %}
+<main>{% with messages=get_flashed_messages(with_categories=true) %}{% for c,m in messages %}<div class="flash {{ c }}">{{ m }}</div>{% endfor %}{% endwith %}{% block content %}{% endblock %}</main></body></html>

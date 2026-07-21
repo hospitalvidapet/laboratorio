@@ -1,0 +1,26 @@
+TESTES EXECUTADOS — V3.6.3
+
+Ambiente de teste:
+- Banco de origem SQLite simulando o PostgreSQL online.
+- Banco de destino vazio e separado.
+- Sincronização automática desativada durante o teste para evitar concorrência.
+
+Fluxos aprovados:
+1. Criação automática da tabela de histórico sync_runs.
+2. Teste de conexão com o banco de origem.
+3. Importação de espécie.
+4. Importação de grupo de exame.
+5. Importação de exame com vínculo ao grupo correto.
+6. Importação de perfil mantendo a lista de exames.
+7. Importação de tipo de amostra.
+8. Segunda sincronização sem duplicar registros.
+9. Atualização de prazo do exame já existente.
+10. Registro de duas sincronizações concluídas.
+11. Login administrativo.
+12. Abertura da tela /admin/sync.
+13. Botão Testar conexão.
+14. Botão Sincronizar agora.
+15. Compilação de todos os arquivos Python.
+
+Observação:
+A senha e a URL fornecidas pelo usuário não foram gravadas no código, documentação ou pacote ZIP.

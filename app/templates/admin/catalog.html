@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+<h2>Cadastros laboratoriais</h2>
+<p class="muted">Clique em uma categoria para abrir somente os campos necessários.</p>
+
+<details class="catalog-section"><summary>Espécies</summary><div class="catalog-content">
+<form method="post" class="panel"><input type="hidden" name="action" value="species"><h3>Nova espécie</h3><div class="grid three"><input name="name" required placeholder="Nome"><input name="display_order" type="number" value="999"></div><button>Adicionar</button></form>
+{% for s in species %}<div class="panel"><form method="post" action="{{url_for('admin.edit_species',id=s.id)}}" class="grid three"><input name="name" value="{{s.name}}"><input name="display_order" type="number" value="{{s.display_order}}"><select name="active"><option value="1" {% if s.active %}selected{% endif %}>Ativa</option><option value="0" {% if not s.active %}selected{% endif %}>Inativa</option></select><button>Salvar</button></form><form method="post" action="{{url_for('admin.delete_species',id=s.id)}}"><button class="danger">Excluir/Inativar</button></form></div>{% endfor %}
+</div></details>
+
+<details class="catalog-section"><summary>Tipos de amostra</summary><div class="catalog-content">
+<form method="post" class="panel"><input type="hidden" name="action" value="sample"><h3>Nova amostra</h3><div class="grid three"><input name="name" required><input name="display_order" type="number" value="999"></div><button>Adicionar</button></form>
+{% for s in samples %}<div class="panel"><form method="post" action="{{url_for('admin.edit_sample',id=s.id)}}" class="grid three"><input name="name" value="{{s.name}}"><input name="display_order" type="number" value="{{s.display_order}}"><select name="active"><option value="1" {% if s.active %}selected{% endif %}>Ativa</option><option value="0" {% if not s.active %}selected{% endif %}>Inativa</option></select><button>Salvar</button></form><form method="post" action="{{url_for('admin.delete_sample',id=s.id)}}"><button class="danger">Excluir/Inativar</button></form></div>{% endfor %}
+</div></details>
+
+<details class="catalog-section"><summary>Grupos de exames</summary><div class="catalog-content">
+<form method="post" class="panel"><input type="hidden" name="action" value="group"><h3>Novo grupo</h3><div class="grid three"><input name="name" required><input name="display_order" type="number" value="999"></div><button>Adicionar</button></form>
+{% for g in groups %}<div class="panel"><form method="post" action="{{url_for('admin.edit_group',id=g.id)}}" class="grid three"><input name="name" value="{{g.name}}"><input name="display_order" type="number" value="{{g.display_order}}"><button>Salvar</button></form><form method="post" action="{{url_for('admin.delete_group',id=g.id)}}"><button class="danger">Excluir</button></form></div>{% endfor %}
+</div></details>
+
+<details class="catalog-section"><summary>Exames</summary><div class="catalog-content">
+<form method="post" class="panel"><input type="hidden" name="action" value="exam"><h3>Novo exame</h3><div class="grid three"><input name="name" required><input name="material" placeholder="Material"><input name="deadline_hours" type="number" value="24"><select name="group_id">{% for g in groups %}<option value="{{g.id}}">{{g.name}}</option>{% endfor %}</select></div><button>Adicionar</button></form>
+{% for e in exams %}<div class="panel"><form method="post" action="{{url_for('admin.edit_exam',id=e.id)}}"><div class="grid three"><input name="name" value="{{e.name}}"><input name="material" value="{{e.material or ''}}"><input name="deadline_hours" type="number" value="{{e.deadline_hours}}"><select name="group_id">{% for g in groups %}<option value="{{g.id}}" {% if e.group_id==g.id %}selected{% endif %}>{{g.name}}</option>{% endfor %}</select><select name="active"><option value="1" {% if e.active %}selected{% endif %}>Ativo</option><option value="0" {% if not e.active %}selected{% endif %}>Inativo</option></select></div><button>Salvar</button></form><form method="post" action="{{url_for('admin.delete_exam',id=e.id)}}"><button class="danger">Excluir/Inativar</button></form></div>{% endfor %}
+</div></details>
+
+<details class="catalog-section"><summary>Perfis laboratoriais</summary><div class="catalog-content">
+<form method="post" class="panel"><input type="hidden" name="action" value="profile"><h3>Novo perfil</h3><input name="name" required><label>Exames do perfil</label><select name="exams" multiple size="8">{% for e in exams if e.active %}<option value="{{e.name}}">{{e.name}}</option>{% endfor %}</select><button>Criar perfil</button></form>
+{% for p in profiles %}<div class="panel"><form method="post" action="{{url_for('admin.edit_profile',id=p.id)}}"><input name="name" value="{{p.name}}"><label>Exames do perfil</label><select name="exams" multiple size="8">{% for e in exams if e.active %}<option value="{{e.name}}" {% if e.name in p.exams %}selected{% endif %}>{{e.name}}</option>{% endfor %}</select><select name="active"><option value="1" {% if p.active %}selected{% endif %}>Ativo</option><option value="0" {% if not p.active %}selected{% endif %}>Inativo</option></select><button>Salvar</button></form><form method="post" action="{{url_for('admin.delete_profile',id=p.id)}}"><button class="danger">Excluir/Inativar</button></form></div>{% endfor %}
+</div></details>
+</section>
+{% endblock %}

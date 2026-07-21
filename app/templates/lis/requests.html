@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+<div class="section-header"><h2>Requisições</h2><a class="btn" href="{{url_for('lis.new_request')}}">Nova requisição</a></div>
+<form method="get" class="search-panel">
+<label>Pesquisar requisições</label>
+<div class="search-row"><input name="q" value="{{query_text or ''}}" placeholder="Paciente, tutor ou espécie — pode digitar apenas as primeiras letras"><button>Pesquisar</button>{% if query_text %}<a class="btn secondary" href="{{url_for('lis.requests_list')}}">Limpar</a>{% endif %}</div>
+</form>
+{% for r in rows %}
+<a class="request-card status-{{r.status|lower|replace(' ','-')}} priority-{{r.priority|lower}}" href="{{url_for('lis.request_detail',request_id=r.id)}}">
+<div><strong>Requisição nº {{r.number}} — {{r.patient.name}}</strong><small>{{r.clinic.name}} · Tutor: {{r.patient.tutor_name}} · Espécie: {{r.patient.species or '-'}}</small><small>Solicitada em {{r.created_at|datetime_br}}</small>{% if r.profiles %}<small>Perfis: {{r.profiles|join(', ')}}</small>{% endif %}</div>
+<div class="request-tags"><span class="priority-badge priority-{{r.priority|lower}}">{{r.priority}}</span><span class="status-badge">{{r.status}}</span></div>
+</a>
+{% else %}<p>Nenhuma requisição encontrada.</p>{% endfor %}
+</section>
+{% endblock %}

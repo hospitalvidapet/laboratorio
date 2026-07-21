@@ -1,0 +1,1 @@
+Versão 3.2: espécies, idade em anos/meses, CRUD de usuários/clínicas/espécies/amostras/grupos/exames/perfis, perfil expandido em exames e informações clínicas completas. Preserve .env e venv ao atualizar.

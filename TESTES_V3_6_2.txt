@@ -1,0 +1,16 @@
+TESTES EXECUTADOS — V3.6.2
+
+Ambiente de teste: banco SQLite simulando uma instalação antiga, sem as colunas novas.
+
+Resultados:
+- Inicialização e migração do banco antigo: APROVADO
+- Criação da coluna lab_results.method: APROVADO
+- Criação/preenchimento de data e hora: APROVADO
+- Segunda execução da migração (idempotência): APROVADO
+- Login com administrador: APROVADO
+- Abertura de Gerenciar requisições: APROVADO (HTTP 200)
+- Exclusão de requisição com resultado vinculado: APROVADO
+- Exclusão de laudo vinculado: APROVADO
+- Exclusão do paciente sem outras requisições: APROVADO
+
+Observação: a atualização adiciona colunas ausentes; não remove tabelas nem apaga registros existentes.
