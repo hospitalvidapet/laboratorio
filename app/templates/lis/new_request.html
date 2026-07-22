@@ -1,1 +1,390 @@
-{% extends "base.html" %}{% block content %}<section class="card"><h2>Nova requisição</h2><form method="post"><div class="grid three"><select name="clinic_id" required>{% for c in clinics %}<option value="{{c.id}}">{{c.name}}</option>{% endfor %}</select><input name="veterinarian" placeholder="Veterinário" required><input name="crmv" placeholder="CRMV"></div><h3>Paciente</h3><div class="grid three"><input name="patient_name" placeholder="Paciente" required><input name="tutor_name" placeholder="Tutor" required><input name="tutor_phone" placeholder="Telefone"><select name="species" required>{% for s in species %}<option value="{{s.name}}">{{s.name}}</option>{% endfor %}</select><input name="breed" placeholder="Raça"><select name="sex"><option>Fêmea</option><option>Macho</option><option>Não informado</option></select><div><label>Anos</label><input name="age_years" type="number" min="0" value="0"></div><div><label>Meses</label><input name="age_months" type="number" min="0" max="11" value="0"></div><input name="weight" placeholder="Peso"></div><h3>Perfis</h3>{% for p in profiles %}<label class="choice"><input type="checkbox" name="profiles" value="{{p.name}}"> <b>{{p.name}}</b> — {{p.exams|join(', ')}}</label>{% endfor %}<h3>Exames individuais</h3>{% for g,items in grouped %}<div class="panel"><h4>{{g.name}}</h4>{% for e in items %}<label class="choice"><input type="checkbox" name="exams" value="{{e.name}}"> {{e.name}} — {{e.material or '-'}}</label>{% endfor %}</div>{% endfor %}<h3>Amostras</h3>{% for s in samples %}<label class="choice"><input type="checkbox" name="samples" value="{{s.name}}"> {{s.name}}</label>{% endfor %}<select name="priority"><option>Rotina</option><option>Urgente</option><option>Emergência</option></select><label>Histórico clínico</label><textarea name="clinical_history"></textarea><label>Suspeita diagnóstica</label><textarea name="diagnostic_suspicion"></textarea><label>Medicações em uso</label><textarea name="medications"></textarea><label>Observações</label><textarea name="observations"></textarea><button>Enviar requisição</button></form></section>{% endblock %}
+{% extends "base.html" %}
+
+{% block content %}
+<section class="card request-page">
+    <h2>Nova requisição</h2>
+
+    <form method="post">
+
+        <!-- 1. Dados da solicitação -->
+        <section class="request-section">
+            <div class="section-header">
+                <span class="section-number">1</span>
+                <div>
+                    <h3>Dados da solicitação</h3>
+                    <p>Informe a unidade e o médico-veterinário responsável.</p>
+                </div>
+            </div>
+
+            <div class="grid three">
+                <div class="field">
+                    <label for="clinic_id">Clínica</label>
+                    <select id="clinic_id" name="clinic_id" required>
+                        {% for c in clinics %}
+                            <option value="{{ c.id }}">{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="veterinarian">Veterinário</label>
+                    <input
+                        id="veterinarian"
+                        name="veterinarian"
+                        placeholder="Nome do veterinário"
+                        required
+                    >
+                </div>
+
+                <div class="field">
+                    <label for="crmv">CRMV</label>
+                    <input
+                        id="crmv"
+                        name="crmv"
+                        placeholder="CRMV"
+                    >
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Paciente -->
+        <section class="request-section">
+            <div class="section-header">
+                <span class="section-number">2</span>
+                <div>
+                    <h3>Cadastro do paciente</h3>
+                    <p>Preencha os dados de identificação do paciente e tutor.</p>
+                </div>
+            </div>
+
+            <div class="grid three">
+                <div class="field">
+                    <label for="patient_name">Paciente</label>
+                    <input
+                        id="patient_name"
+                        name="patient_name"
+                        placeholder="Nome do paciente"
+                        required
+                    >
+                </div>
+
+                <div class="field">
+                    <label for="tutor_name">Tutor</label>
+                    <input
+                        id="tutor_name"
+                        name="tutor_name"
+                        placeholder="Nome do tutor"
+                        required
+                    >
+                </div>
+
+                <div class="field">
+                    <label for="tutor_phone">Telefone</label>
+                    <input
+                        id="tutor_phone"
+                        name="tutor_phone"
+                        placeholder="Telefone do tutor"
+                    >
+                </div>
+
+                <div class="field">
+                    <label for="species">Espécie</label>
+                    <select id="species" name="species" required>
+                        {% for s in species %}
+                            <option value="{{ s.name }}">{{ s.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="breed">Raça</label>
+                    <input
+                        id="breed"
+                        name="breed"
+                        placeholder="Raça"
+                    >
+                </div>
+
+                <div class="field">
+                    <label for="sex">Sexo</label>
+                    <select id="sex" name="sex">
+                        <option value="Fêmea">Fêmea</option>
+                        <option value="Macho">Macho</option>
+                        <option value="Não informado">Não informado</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="age_years">Idade — anos</label>
+                    <input
+                        id="age_years"
+                        name="age_years"
+                        type="number"
+                        min="0"
+                        value="0"
+                    >
+                </div>
+
+                <div class="field">
+                    <label for="age_months">Idade — meses</label>
+                    <input
+                        id="age_months"
+                        name="age_months"
+                        type="number"
+                        min="0"
+                        max="11"
+                        value="0"
+                    >
+                </div>
+
+                <div class="field">
+                    <label for="weight">Peso</label>
+                    <input
+                        id="weight"
+                        name="weight"
+                        placeholder="Peso em kg"
+                    >
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Amostras -->
+        <section class="request-section">
+            <div class="section-header">
+                <span class="section-number">3</span>
+                <div>
+                    <h3>Seleção de amostra</h3>
+                    <p>Selecione uma ou mais amostras encaminhadas.</p>
+                </div>
+            </div>
+
+            {% if samples %}
+                <div class="selection-grid sample-grid">
+                    {% for s in samples %}
+                        <label class="selection-card">
+                            <input
+                                type="checkbox"
+                                name="samples"
+                                value="{{ s.name }}"
+                            >
+
+                            <span class="selection-content">
+                                <strong>{{ s.name }}</strong>
+                            </span>
+                        </label>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="empty-message">
+                    Nenhum tipo de amostra cadastrado.
+                </p>
+            {% endif %}
+        </section>
+
+        <!-- 4. Perfis -->
+        <section class="request-section">
+            <div class="section-header">
+                <span class="section-number">4</span>
+                <div>
+                    <h3>Perfis laboratoriais</h3>
+                    <p>Selecione um perfil para adicionar seu conjunto de exames.</p>
+                </div>
+            </div>
+
+            {% if profiles %}
+                <div class="profiles-grid">
+                    {% for p in profiles %}
+                        <label class="profile-card">
+                            <div class="profile-card-header">
+                                <input
+                                    type="checkbox"
+                                    name="profiles"
+                                    value="{{ p.name }}"
+                                >
+
+                                <strong>{{ p.name }}</strong>
+                            </div>
+
+                            {% if p.exams %}
+                                <div class="profile-exams">
+                                    {% for exam_name in p.exams %}
+                                        <span class="exam-tag">
+                                            {{ exam_name }}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <span class="muted-text">
+                                    Nenhum exame vinculado.
+                                </span>
+                            {% endif %}
+                        </label>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="empty-message">
+                    Nenhum perfil laboratorial cadastrado.
+                </p>
+            {% endif %}
+        </section>
+
+        <!-- 5. Exames individuais -->
+        <section class="request-section">
+            <div class="section-header">
+                <span class="section-number">5</span>
+                <div>
+                    <h3>Exames individuais</h3>
+                    <p>Selecione exames adicionais, organizados por grupo.</p>
+                </div>
+            </div>
+
+            <div class="field exam-search-field">
+                <label for="exam-search">Buscar exame</label>
+                <input
+                    id="exam-search"
+                    type="search"
+                    placeholder="Digite o nome do exame"
+                    autocomplete="off"
+                >
+            </div>
+
+            <div id="exam-groups">
+                {% for g, items in grouped %}
+                    <section class="exam-group">
+                        <div class="exam-group-header">
+                            <h4>{{ g.name }}</h4>
+                            <span>{{ items|length }} exame(s)</span>
+                        </div>
+
+                        <div class="selection-grid exams-grid">
+                            {% for e in items %}
+                                <label
+                                    class="selection-card exam-option"
+                                    data-exam-name="{{ e.name|lower }}"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        name="exams"
+                                        value="{{ e.name }}"
+                                    >
+
+                                    <span class="selection-content">
+                                        <strong>{{ e.name }}</strong>
+                                    </span>
+                                </label>
+                            {% endfor %}
+                        </div>
+                    </section>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- 6. Informações clínicas -->
+        <section class="request-section">
+            <div class="section-header">
+                <span class="section-number">6</span>
+                <div>
+                    <h3>Informações clínicas</h3>
+                    <p>Registre o histórico e as informações relevantes.</p>
+                </div>
+            </div>
+
+            <div class="field priority-field">
+                <label for="priority">Prioridade</label>
+                <select id="priority" name="priority">
+                    <option value="Rotina">Rotina</option>
+                    <option value="Urgente">Urgente</option>
+                    <option value="Emergência">Emergência</option>
+                </select>
+            </div>
+
+            <div class="grid two">
+                <div class="field">
+                    <label for="clinical_history">Histórico clínico</label>
+                    <textarea
+                        id="clinical_history"
+                        name="clinical_history"
+                        rows="5"
+                        placeholder="Descreva o histórico clínico"
+                    ></textarea>
+                </div>
+
+                <div class="field">
+                    <label for="diagnostic_suspicion">
+                        Suspeita diagnóstica
+                    </label>
+                    <textarea
+                        id="diagnostic_suspicion"
+                        name="diagnostic_suspicion"
+                        rows="5"
+                        placeholder="Informe a suspeita diagnóstica"
+                    ></textarea>
+                </div>
+
+                <div class="field">
+                    <label for="medications">Medicações em uso</label>
+                    <textarea
+                        id="medications"
+                        name="medications"
+                        rows="4"
+                        placeholder="Informe as medicações em uso"
+                    ></textarea>
+                </div>
+
+                <div class="field">
+                    <label for="observations">Observações</label>
+                    <textarea
+                        id="observations"
+                        name="observations"
+                        rows="4"
+                        placeholder="Inclua outras informações relevantes"
+                    ></textarea>
+                </div>
+            </div>
+        </section>
+
+        <div class="form-actions">
+            <button type="submit" class="primary-button">
+                Enviar requisição
+            </button>
+        </div>
+    </form>
+</section>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("exam-search");
+    const examOptions = document.querySelectorAll(".exam-option");
+    const examGroups = document.querySelectorAll(".exam-group");
+
+    if (!searchInput) {
+        return;
+    }
+
+    searchInput.addEventListener("input", function () {
+        const searchTerm = this.value
+            .toLowerCase()
+            .trim();
+
+        examOptions.forEach(function (option) {
+            const examName = option.dataset.examName || "";
+            option.style.display = examName.includes(searchTerm)
+                ? ""
+                : "none";
+        });
+
+        examGroups.forEach(function (group) {
+            const visibleOptions = Array.from(
+                group.querySelectorAll(".exam-option")
+            ).some(function (option) {
+                return option.style.display !== "none";
+            });
+
+            group.style.display = visibleOptions
+                ? ""
+                : "none";
+        });
+    });
+});
+</script>
+{% endblock %}
